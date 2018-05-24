@@ -1,0 +1,54 @@
+---
+# tasks file for ansible-role-rbenv
+- name: Install pyenv packages
+  become: yes
+  yum: name={{ item }} state=present
+  with_items:
+    - gcc
+    - zlib-devel
+    - bzip
+    - bzip2-devel
+    - readline
+    - readline-devel
+    - sqlite
+    - sqlite-devel
+    - openssl
+    - openssl-devel
+
+- name: git clone pyenv , pyenv-virtualenv
+  git:
+    repo: '{{ item.repo }}'
+    dest: '{{ item.dest }}'
+  register: RESULT
+  become: yes
+  become_user: "{{ user.name | default(ansible_env.USER) }}"
+  with_items:
+    - repo: git://github.com/yyuu/pyenv.git
+      dest: ~/.pyenv
+    - repo: git://github.com/yyuu/pyenv-virtualenv.git
+      dest: ~/.pyenv/plugins/pyenv-virtualenv
+
+- name: Set pyenv path
+  lineinfile: >
+    dest=~/.zshrc
+    line="{{ item }}"
+  become: yes
+  become_user: "{{ user.name | default(ansible_env.USER) }}"
+  with_items:
+    - 'export PATH="$HOME/.pyenv/bin:$PATH"'
+    - 'eval "$(pyenv init -)"'
+    - 'eval "$(pyenv virtualenv-init -)"'
+
+- name: Install python's
+  shell: "CONFIGURE_OPTS='--enable-shared' ~/.pyenv/bin/pyenv install {{ version }}"
+  become: yes
+  become_user: "{{ user.name | default(ansible_env.USER) }}"
+  with_items:
+  - "{{ pyenv.versions }}"
+  loop_control:
+    loop_var: version
+
+- name: "Set global python {{ pyenv.versions[0] }}"
+  shell: "~/.pyenv/bin/pyenv global {{ pyenv.versions[0] }}; ~/.pyenv/bin/pyenv rehash"
+  become: yes
+  become_user: "{{ user.name | default(ansible_env.USER) }}"

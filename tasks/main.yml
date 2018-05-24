@@ -1,0 +1,5 @@
+---
+# tasks file for ansible-role-pyenv
+- include: "RedHat/main.yml"
+  when: ansible_os_family == 'RedHat'
+
